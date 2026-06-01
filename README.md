@@ -4,7 +4,8 @@ NestJS + Prisma backend for an e-commerce application.
 
 ## Documentation
 
-- [API documentation](docs/API.md)
+- [API documentation — English](docs/API.md)
+- [API documentation — Russian](docs/API_RU.md)
 - Swagger UI: `http://localhost:3031/docs`
 
 ## Local setup
