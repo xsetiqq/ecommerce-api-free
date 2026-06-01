@@ -19,5 +19,5 @@ export class LoginRequest {
   @IsString({ message: 'Пароль должен быть строкой' })
   @IsNotEmpty({ message: 'Пароль не должен быть пустым' })
   @MinLength(6, { message: 'Пароль должен быть не менее 6 символов' })
-  passwordHash: string;
+  password: string;
 }

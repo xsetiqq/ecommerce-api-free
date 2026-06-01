@@ -21,7 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { Authorization } from './decorators/authorization.decorator';
 import { Authorized } from './decorators/authorized.decorator';
-import { UserRole } from '../generated/prisma/wasm';
+import { UserRole } from '../generated/prisma';
 import { ChangePhotoDto } from './dto/change-photo.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
@@ -31,8 +31,6 @@ import type { AuthorizedUser } from './interfaces/authorized-user.interface';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @ApiBearerAuth()
-  @Authorization(UserRole.ADMIN)
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({

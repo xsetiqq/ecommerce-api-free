@@ -15,9 +15,9 @@ import { JwtPayload } from './interfaces/jwt.interface';
 import { isDev } from '../utils/is-dev.util';
 import { Request, Response } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { User } from '../generated/prisma';
 import { ChangePhotoDto } from './dto/change-photo.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
+import { User, UserRole } from '../generated/prisma';
 
 @Injectable()
 export class AuthService {
@@ -43,22 +43,23 @@ export class AuthService {
   }
 
   public async register(dto: RegisterRequest) {
-    const { name, email, passwordHash, photoUrl, role } = dto;
+    const { name, email, password, photoUrl } = dto;
 
     const existUser = await this.prismaService.user.findUnique({
-      where: { email: dto.email },
+      where: { email },
     });
 
     if (existUser) {
       throw new ConflictException('User with this email already exists');
     }
+
     const user = await this.prismaService.user.create({
       data: {
         name,
         email,
-        passwordHash: await hash(passwordHash),
+        passwordHash: await hash(password),
         photoUrl,
-        role,
+        role: UserRole.USER,
       },
     });
 
@@ -66,8 +67,9 @@ export class AuthService {
       message: `User ${user.email} successfully created with role ${user.role}`,
     };
   }
+
   public async login(res: Response, dto: LoginRequest) {
-    const { email, passwordHash } = dto;
+    const { email, password } = dto;
 
     const user = await this.prismaService.user.findUnique({
       where: {
@@ -85,7 +87,7 @@ export class AuthService {
       throw new NotFoundException('Invalid login or password');
     }
 
-    const isValidPassword = await verify(user.passwordHash, passwordHash);
+    const isValidPassword = await verify(user.passwordHash, password);
 
     if (!isValidPassword) {
       throw new NotFoundException('Invalid login or password');

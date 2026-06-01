@@ -1,13 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
-import { UserRole } from '../../generated/prisma';
 
 export class RegisterRequest {
   @ApiProperty({
@@ -35,7 +33,7 @@ export class RegisterRequest {
   @IsString({ message: 'Пароль должен быть строкой' })
   @IsNotEmpty({ message: 'Пароль не должен быть пустым' })
   @MinLength(6, { message: 'Пароль должен быть не менее 6 символов' })
-  passwordHash: string;
+  password: string;
 
   @ApiPropertyOptional({
     description: 'URL адрес фотографии профиля',
@@ -44,9 +42,4 @@ export class RegisterRequest {
   @IsOptional()
   @IsString({ message: 'URL фото должен быть строкой' })
   photoUrl?: string;
-
-  @ApiProperty({ enum: UserRole, default: UserRole.USER })
-  @IsNotEmpty({ message: 'Роль пользователя не должна быть пустой' })
-  @IsEnum(UserRole)
-  role: UserRole;
 }
