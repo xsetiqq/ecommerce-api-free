@@ -110,13 +110,13 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new NotFoundException('Invalid login or password');
+      throw new NotFoundException('Invalid email or password');
     }
 
     const isValidPassword = await verify(user.passwordHash, password);
 
     if (!isValidPassword) {
-      throw new NotFoundException('Invalid login or password');
+      throw new NotFoundException('Invalid email or password');
     }
 
     return this.auth(res, user.id, user.role);
@@ -191,7 +191,7 @@ export class AuthService {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {
-          passwordHash: await hash(dto.passwordHash),
+          passwordHash: await hash(dto.password),
         },
       });
       return updatedUser;

@@ -82,7 +82,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
-    description: 'Invalid login or password',
+    description: 'Invalid email or password',
   })
   public async login(
     @Res({ passthrough: true }) res: Response,
