@@ -186,15 +186,15 @@ export class AuthService {
   public async changePassword(
     id: string,
     dto: ChangePasswordDto,
-  ): Promise<User> {
-    return await this.prismaService.$transaction(async (tx) => {
-      const updatedUser = await tx.user.update({
-        where: { id },
-        data: {
-          passwordHash: await hash(dto.password),
-        },
-      });
-      return updatedUser;
+  ): Promise<void> {
+    await this.prismaService.user.update({
+      where: { id },
+      data: {
+        passwordHash: await hash(dto.password),
+      },
+      select: {
+        id: true,
+      },
     });
   }
 
