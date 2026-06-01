@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(USER)
+  isActive     Boolean  @default(true) @map("is_active")
+  photoUrl     String?  @map("photo_url")
+
+  isDelete          Boolean           @default(false) @map("is_delete")
+  deletedAt         DateTime?         @map("deleted_at")
+  deliveryAddresses DeliveryAddress[]
+
+  cartItems CartItem[]
+  orders    Order[]
+  favorites FavoriteItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Category {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  description String?
+  imageUrl    String? @map("image_url")
+  isActive    Boolean @default(true) @map("is_active")
+
+  isDelete  Boolean   @default(false) @map("is_delete")
+  deletedAt DateTime? @map("deleted_at")
+
+  products Product[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  title       String
+  slug        String   @unique
+  description String
+  price       Decimal  @db.Decimal(10, 2)
+  oldPrice    Decimal? @map("old_price") @db.Decimal(10, 2)
+  imageUrl    String?  @map("image_url")
+  images      String[] @default([])
+  stock       Int      @default(0)
+  rating      Decimal? @db.Decimal(3, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+
+  isDelete  Boolean   @default(false) @map("is_delete")
+  deletedAt DateTime? @map("deleted_at")
+
+  categoryId String   @map("category_id")
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  favorites  FavoriteItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+model CartItem {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  productId String @map("product_id")
+  quantity  Int
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, productId])
+  @@map("cart_items")
+}
+
+model FavoriteItem {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  productId String @map("product_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("favorite_items")
+}
+
+model DeliveryAddress {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName   String  @map("full_name")
+  phone      String
+  country    String?
+  city       String
+  street     String
+  building   String
+  apartment  String?
+  postalCode String? @map("postal_code")
+  comment    String?
+
+  isDefault Boolean @default(false) @map("is_default")
+
+  isDelete  Boolean   @default(false) @map("is_delete")
+  deletedAt DateTime? @map("deleted_at")
+
+  orders Order[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("delivery_addresses")
+}
+
+model Order {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  deliveryAddressId    String?          @map("delivery_address_id")
+  savedDeliveryAddress DeliveryAddress? @relation(fields: [deliveryAddressId], references: [id], onDelete: SetNull)
+
+  status OrderStatus @default(PENDING)
+  total  Decimal     @db.Decimal(10, 2)
+
+  deliveryAddress String  @map("delivery_address")
+  phone           String
+  comment         String?
+
+  isDelete  Boolean   @default(false) @map("is_delete")
+  deletedAt DateTime? @map("deleted_at")
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String  @map("order_id")
+  productId String  @map("product_id")
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
