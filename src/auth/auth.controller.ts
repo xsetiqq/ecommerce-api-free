@@ -117,16 +117,7 @@ export class AuthController {
     description: 'Token is missing, expired, or invalid',
   })
   public me(@Authorized() user: AuthorizedUser) {
-    const {
-      name,
-      email,
-      role,
-      photoUrl,
-      createdAt,
-      updatedAt,
-      id,
-      telegramId,
-    } = user;
+    const { name, email, role, photoUrl, createdAt, updatedAt, id } = user;
     const res = {
       id,
       name,
@@ -135,7 +126,6 @@ export class AuthController {
       photoUrl,
       createdAt,
       updatedAt,
-      telegramId,
     };
     return res;
   }

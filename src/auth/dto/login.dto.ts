@@ -1,14 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginRequest {
   @ApiProperty({
-    description: 'Уникальный логин пользователя',
-    example: 'ivan_dev',
+    description: 'Email пользователя',
+    example: 'ivan_dev@example.com',
   })
-  @IsString({ message: 'Логин должен быть строкой' })
-  @IsNotEmpty({ message: 'Логин не должен быть пустым' })
-  login: string;
+  @IsString({ message: 'Email должен быть строкой' })
+  @IsNotEmpty({ message: 'Email не должен быть пустым' })
+  @IsEmail()
+  email: string;
 
   @ApiProperty({
     description: 'Пароль пользователя',

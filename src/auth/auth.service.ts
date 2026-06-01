@@ -6,12 +6,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from './../prisma/prisma.service';
 import { RegisterRequest } from './dto/register.dto';
+import { LoginRequest } from './dto/login.dto';
 import { hash, verify } from 'argon2';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { StringValue } from 'ms';
 import { JwtPayload } from './interfaces/jwt.interface';
-import { LoginRequest } from './dto/login.dto';
 import { isDev } from '../utils/is-dev.util';
 import { Request, Response } from 'express';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -43,21 +43,19 @@ export class AuthService {
   }
 
   public async register(dto: RegisterRequest) {
-    const { name, login, passwordHash, photoUrl, role } = dto;
+    const { name, email, passwordHash, photoUrl, role } = dto;
 
     const existUser = await this.prismaService.user.findUnique({
-      where: {
-        login,
-      },
+      where: { email: dto.email },
     });
 
     if (existUser) {
-      throw new ConflictException('User with this login already exists');
+      throw new ConflictException('User with this email already exists');
     }
     const user = await this.prismaService.user.create({
       data: {
         name,
-        login,
+        email,
         passwordHash: await hash(passwordHash),
         photoUrl,
         role,
@@ -65,16 +63,15 @@ export class AuthService {
     });
 
     return {
-      message: `User ${user.login} successfully created with role ${user.role}`,
+      message: `User ${user.email} successfully created with role ${user.role}`,
     };
   }
-
   public async login(res: Response, dto: LoginRequest) {
-    const { login, passwordHash } = dto;
+    const { email, passwordHash } = dto;
 
     const user = await this.prismaService.user.findUnique({
       where: {
-        login,
+        email,
         isActive: true,
       },
       select: {
@@ -141,12 +138,13 @@ export class AuthService {
       },
       select: {
         id: true,
-        login: true,
+        email: true,
         name: true,
         isActive: true,
         photoUrl: true,
         role: true,
-        telegramId: true,
+        isDelete: true,
+        deletedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -161,7 +159,7 @@ export class AuthService {
     id: string,
     dto: ChangePasswordDto,
   ): Promise<User> {
-    return this.prismaService.$transaction(async (tx) => {
+    return await this.prismaService.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {
@@ -173,7 +171,7 @@ export class AuthService {
   }
 
   public async updatePhoto(id: string, dto: ChangePhotoDto): Promise<User> {
-    return this.prismaService.$transaction(async (tx) => {
+    return await this.prismaService.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
         where: { id },
         data: {

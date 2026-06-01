@@ -7,14 +7,14 @@ import {
 import { Reflector } from '@nestjs/core';
 import { RequestWithUser } from '../decorators/authorized.decorator';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { UserRoles } from '../../generated/prisma';
+import { UserRole } from '../../generated/prisma';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRoles[]>(
+    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );

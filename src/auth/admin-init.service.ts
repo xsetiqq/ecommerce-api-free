@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { hash } from 'argon2';
-import { UserRoles } from '../generated/prisma/wasm';
+import { UserRole } from '../generated/prisma';
 
 @Injectable()
 export class AdminInitService implements OnModuleInit {
@@ -29,7 +29,7 @@ export class AdminInitService implements OnModuleInit {
           name: 'Initial Admin',
           email,
           passwordHash: await hash(password),
-          role: UserRoles.ADMIN,
+          role: UserRole.ADMIN,
         },
       });
       this.logger.log(`Initial admin [${email}] created successfully.`);
