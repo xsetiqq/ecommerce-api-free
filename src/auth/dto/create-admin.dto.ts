@@ -9,37 +9,37 @@ import {
 
 export class CreateAdminDto {
   @ApiProperty({
-    description: 'Имя администратора',
+    description: 'Admin name',
     example: 'Admin User',
   })
-  @IsString({ message: 'Имя должно быть строкой' })
-  @IsNotEmpty({ message: 'Имя не должно быть пустым' })
+  @IsString({ message: 'Name must be a string' })
+  @IsNotEmpty({ message: 'Name must not be empty' })
   name: string;
 
   @ApiProperty({
-    description: 'Уникальный email администратора',
+    description: 'Unique admin email',
     example: 'admin@example.com',
   })
-  @IsString({ message: 'Email должен быть строкой' })
-  @IsNotEmpty({ message: 'Email не должен быть пустым' })
+  @IsString({ message: 'Email must be a string' })
+  @IsNotEmpty({ message: 'Email must not be empty' })
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    description: 'Пароль администратора',
+    description: 'Admin password',
     example: 'strongAdminPass123!',
     minLength: 6,
   })
-  @IsString({ message: 'Пароль должен быть строкой' })
-  @IsNotEmpty({ message: 'Пароль не должен быть пустым' })
-  @MinLength(6, { message: 'Пароль должен быть не менее 6 символов' })
+  @IsString({ message: 'Password must be a string' })
+  @IsNotEmpty({ message: 'Password must not be empty' })
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
   password: string;
 
   @ApiPropertyOptional({
-    description: 'URL адрес фотографии профиля',
+    description: 'Profile photo URL',
     example: 'https://example.com/avatars/admin.jpg',
   })
   @IsOptional()
-  @IsString({ message: 'URL фото должен быть строкой' })
+  @IsString({ message: 'Photo URL must be a string' })
   photoUrl?: string;
 }

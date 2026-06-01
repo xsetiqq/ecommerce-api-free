@@ -3,21 +3,21 @@ import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
 export class LoginRequest {
   @ApiProperty({
-    description: 'Email пользователя',
+    description: 'User email',
     example: 'ivan_dev@example.com',
   })
-  @IsString({ message: 'Email должен быть строкой' })
-  @IsNotEmpty({ message: 'Email не должен быть пустым' })
+  @IsString({ message: 'Email must be a string' })
+  @IsNotEmpty({ message: 'Email must not be empty' })
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    description: 'Пароль пользователя',
+    description: 'User password',
     example: 'strongPass123!',
     minLength: 6,
   })
-  @IsString({ message: 'Пароль должен быть строкой' })
-  @IsNotEmpty({ message: 'Пароль не должен быть пустым' })
-  @MinLength(6, { message: 'Пароль должен быть не менее 6 символов' })
+  @IsString({ message: 'Password must be a string' })
+  @IsNotEmpty({ message: 'Password must not be empty' })
+  @MinLength(6, { message: 'Password must be at least 6 characters long' })
   password: string;
 }
