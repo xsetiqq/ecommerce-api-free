@@ -15,7 +15,7 @@ import {
   S3ServiceException,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 interface UploadedFileLike {
   originalname: string;
@@ -120,7 +120,7 @@ export class FileStorageService implements OnModuleInit {
       throw new BadRequestException('Product image extension is required');
     }
 
-    const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+    const uniqueFileName = `${randomUUID()}.${fileExtension}`;
 
     try {
       await this.s3Client.send(

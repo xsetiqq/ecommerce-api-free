@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DATABASE}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - '${POSTGRES_PORT}:5432'
     volumes:
       - ecommerce_postgres_data:/var/lib/postgresql/data
     networks:
@@ -19,8 +19,8 @@ services:
     image: minio/minio:latest
     restart: always
     ports:
-      - "${MINIO_PORT}:9000"
-      - "${MINIO_CONSOLE_PORT}:9001"
+      - '${MINIO_PORT}:9000'
+      - '${MINIO_CONSOLE_PORT}:9001'
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -38,7 +38,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
     entrypoint: >
       /bin/sh -c "
       until mc alias set local http://ecommerce-minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do
@@ -46,11 +46,11 @@ services:
         sleep 2;
       done;
 
-      mc mb --ignore-existing local/$${MINIO_BUCKET};
+      mc mb --ignore-existing local/$${MINIO_BUCKET_NAME};
 
-      mc anonymous set download local/$${MINIO_BUCKET};
+      mc anonymous set download local/$${MINIO_BUCKET_NAME};
 
-      echo 'MinIO bucket is ready: '$${MINIO_BUCKET};
+      echo 'MinIO bucket is ready: '$${MINIO_BUCKET_NAME};
       "
     networks:
       - ecommerce-network
