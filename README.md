@@ -2,6 +2,8 @@
 
 NestJS + Prisma backend for an e-commerce application.
 
+This project was created as a simple and accessible backend example for RS School students. It is completely open for everyone. You are free to fork this repository, explore the codebase, and modify it for your own projects or learning purposes :)
+
 ## Documentation
 
 - [API documentation — English](docs/API.md)
