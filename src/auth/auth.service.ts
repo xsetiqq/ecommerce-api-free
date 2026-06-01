@@ -18,6 +18,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangePhotoDto } from './dto/change-photo.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
 import { User, UserRole } from '../generated/prisma';
+import { CreateAdminDto } from './dto/create-admin.dto';
 
 @Injectable()
 export class AuthService {
@@ -65,6 +66,31 @@ export class AuthService {
 
     return {
       message: `User ${user.email} successfully created with role ${user.role}`,
+    };
+  }
+  public async createAdmin(dto: CreateAdminDto) {
+    const { name, email, password, photoUrl } = dto;
+
+    const existUser = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (existUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    const user = await this.prismaService.user.create({
+      data: {
+        name,
+        email,
+        passwordHash: await hash(password),
+        photoUrl,
+        role: UserRole.ADMIN,
+      },
+    });
+
+    return {
+      message: `Admin ${user.email} successfully created`,
     };
   }
 

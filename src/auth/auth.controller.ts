@@ -25,6 +25,7 @@ import { UserRole } from '../generated/prisma';
 import { ChangePhotoDto } from './dto/change-photo.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
+import { CreateAdminDto } from './dto/create-admin.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -34,12 +35,31 @@ export class AuthController {
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Create a new employee (Admins only)',
+    summary: 'Register a new user',
   })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description:
-      'User successfully created. Returns a message with login and role',
+      'User successfully created. Returns a message with email and role',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'User with this email already exists',
+  })
+  public async register(@Body() dto: RegisterRequest) {
+    return this.authService.register(dto);
+  }
+
+  @ApiBearerAuth()
+  @Authorization(UserRole.ADMIN)
+  @Post('admin')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Create a new admin user',
+  })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Admin user successfully created',
   })
   @ApiResponse({
     status: HttpStatus.FORBIDDEN,
@@ -47,10 +67,10 @@ export class AuthController {
   })
   @ApiResponse({
     status: HttpStatus.CONFLICT,
-    description: 'User with this login already exists',
+    description: 'User with this email already exists',
   })
-  public async register(@Body() dto: RegisterRequest) {
-    return this.authService.register(dto);
+  public async createAdmin(@Body() dto: CreateAdminDto) {
+    return this.authService.createAdmin(dto);
   }
 
   @Post('login')
