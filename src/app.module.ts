@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { FileStorageModule } from './file-storage/storage.module';
+import { DeliveryAddressesModule } from './delivery-addresses/delivery-addresses.module';
 
 @Module({
   imports: [
@@ -18,8 +18,8 @@ import { FileStorageModule } from './file-storage/storage.module';
     PrismaModule,
     AuthModule,
     FileStorageModule,
+    DeliveryAddressesModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
