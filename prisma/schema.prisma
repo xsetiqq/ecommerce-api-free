@@ -37,6 +37,7 @@ model User {
 
   cartItems CartItem[]
   orders    Order[]
+  favorites FavoriteItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -84,6 +85,7 @@ model Product {
 
   cartItems  CartItem[]
   orderItems OrderItem[]
+  favorites  FavoriteItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -105,6 +107,22 @@ model CartItem {
 
   @@unique([userId, productId])
   @@map("cart_items")
+}
+
+model FavoriteItem {
+  id        String @id @default(uuid())
+  userId    String @map("user_id")
+  productId String @map("product_id")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@map("favorite_items")
 }
 
 model DeliveryAddress {
