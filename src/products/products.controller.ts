@@ -22,6 +22,11 @@ import { Authorization } from '../auth/decorators/authorization.decorator';
 import { UserRole } from '../generated/prisma';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  FindProductsQueryDto,
+  ProductSortBy,
+  SortOrder,
+} from './dto/find-products-query.dto';
 import { ProductsService } from './products.service';
 
 @ApiTags('Products')
@@ -32,8 +37,15 @@ export class ProductsController {
   @Get()
   @ApiOperation({ summary: 'Get active products' })
   @ApiQuery({ name: 'categorySlug', required: false })
-  public async findAll(@Query('categorySlug') categorySlug?: string) {
-    return this.productsService.findAll(categorySlug);
+  @ApiQuery({ name: 'q', required: false })
+  @ApiQuery({ name: 'minPrice', required: false })
+  @ApiQuery({ name: 'maxPrice', required: false })
+  @ApiQuery({ name: 'sortBy', required: false, enum: ProductSortBy })
+  @ApiQuery({ name: 'order', required: false, enum: SortOrder })
+  @ApiQuery({ name: 'page', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  public async findAll(@Query() query: FindProductsQueryDto) {
+    return this.productsService.findAll(query);
   }
 
   @Get(':slug')
