@@ -7,7 +7,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { FindProductsQueryDto, ProductSortBy, SortOrder } from './dto/find-products-query.dto';
+import {
+  FindProductsQueryDto,
+  ProductSortBy,
+  SortOrder,
+} from './dto/find-products-query.dto';
 import { Prisma } from '../generated/prisma';
 
 @Injectable()
@@ -40,15 +44,15 @@ export class ProductsService {
       isDelete: false,
       isActive: true,
       category: categorySlug
-       ? {
-           slug: categorySlug,
-           isDelete: false,
-           isActive: true,
-         }
-       : {
-           isDelete: false,
-           isActive: true,
-         },
+        ? {
+            slug: categorySlug,
+            isDelete: false,
+            isActive: true,
+          }
+        : {
+            isDelete: false,
+            isActive: true,
+          },
     };
 
     const search = q?.trim();

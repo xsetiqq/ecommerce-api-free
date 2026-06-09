@@ -38,12 +38,12 @@ export class ProductsController {
   @ApiOperation({ summary: 'Get active products' })
   @ApiQuery({ name: 'categorySlug', required: false })
   @ApiQuery({ name: 'q', required: false })
-  @ApiQuery({ name: 'minPrice', required: false })
-  @ApiQuery({ name: 'maxPrice', required: false })
+  @ApiQuery({ name: 'minPrice', required: false, type: Number })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number })
   @ApiQuery({ name: 'sortBy', required: false, enum: ProductSortBy })
   @ApiQuery({ name: 'order', required: false, enum: SortOrder })
-  @ApiQuery({ name: 'page', required: false })
-  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   public async findAll(@Query() query: FindProductsQueryDto) {
     return this.productsService.findAll(query);
   }
