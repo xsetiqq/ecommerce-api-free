@@ -13,6 +13,8 @@ import {
   SortOrder,
 } from './dto/find-products-query.dto';
 import { Prisma } from '../generated/prisma';
+import { CreateProductVariantDto } from './dto/create-product-variant.dto';
+import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 
 @Injectable()
 export class ProductsService {
@@ -88,7 +90,10 @@ export class ProductsService {
     const [products, total] = await Promise.all([
       this.prismaService.product.findMany({
         where,
-        include: { category: true },
+        include: {
+          category: true,
+          variants: { where: { isDelete: false, isActive: true } },
+        },
         orderBy,
         skip,
         take: limit,
@@ -117,7 +122,10 @@ export class ProductsService {
         isActive: true,
         category: { isDelete: false, isActive: true },
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
 
     if (!product) {
@@ -145,7 +153,10 @@ export class ProductsService {
         isActive: dto.isActive ?? true,
         categoryId: dto.categoryId,
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
   }
 
@@ -175,7 +186,10 @@ export class ProductsService {
         isActive: dto.isActive,
         categoryId: dto.categoryId,
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
   }
 
@@ -189,6 +203,52 @@ export class ProductsService {
         deletedAt: new Date(),
         isActive: false,
       },
+    });
+  }
+
+  public async createVariant(productId: string, dto: CreateProductVariantDto) {
+    await this.ensureProductExists(productId);
+    await this.ensureVariantSkuAvailable(dto.sku);
+
+    return this.prismaService.productVariant.create({
+      data: {
+        productId,
+        sku: dto.sku,
+        color: dto.color,
+        size: dto.size,
+        price: dto.price,
+        stock: dto.stock,
+        isActive: dto.isActive ?? true,
+      },
+    });
+  }
+
+  public async updateVariant(variantId: string, dto: UpdateProductVariantDto) {
+    await this.ensureVariantExists(variantId);
+
+    if (dto.sku) {
+      await this.ensureVariantSkuAvailable(dto.sku, variantId);
+    }
+
+    return this.prismaService.productVariant.update({
+      where: { id: variantId },
+      data: {
+        sku: dto.sku,
+        color: dto.color,
+        size: dto.size,
+        price: dto.price,
+        stock: dto.stock,
+        isActive: dto.isActive,
+      },
+    });
+  }
+
+  public async removeVariant(variantId: string) {
+    await this.ensureVariantExists(variantId);
+
+    return this.prismaService.productVariant.update({
+      where: { id: variantId },
+      data: { isDelete: true, isActive: false, deletedAt: new Date() },
     });
   }
 
@@ -223,6 +283,30 @@ export class ProductsService {
 
     if (product && product.id !== excludeId) {
       throw new ConflictException('Product with this slug already exists');
+    }
+  }
+
+  private async ensureVariantExists(id: string) {
+    const variant = await this.prismaService.productVariant.findFirst({
+      where: { id, isDelete: false },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Product variant not found');
+    }
+
+    return variant;
+  }
+
+  private async ensureVariantSkuAvailable(sku: string, excludeId?: string) {
+    const variant = await this.prismaService.productVariant.findUnique({
+      where: { sku },
+    });
+
+    if (variant && variant.id !== excludeId) {
+      throw new ConflictException(
+        'Product variant with this SKU already exists',
+      );
     }
   }
 }

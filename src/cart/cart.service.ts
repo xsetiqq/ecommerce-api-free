@@ -17,39 +17,71 @@ export class CartService {
         userId,
         product: { isDelete: false, isActive: true },
       },
-      include: { product: { include: { category: true } } },
+      include: {
+        product: { include: { category: true } },
+        variant: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   public async add(userId: string, dto: AddCartItemDto) {
     const product = await this.ensureProductIsAvailable(dto.productId);
+    const variant = dto.variantId
+      ? await this.ensureVariantIsAvailable(dto.productId, dto.variantId)
+      : null;
+    const availableStock = variant?.stock ?? product.stock;
 
-    const existingItem = await this.prismaService.cartItem.findUnique({
-      where: { userId_productId: { userId, productId: dto.productId } },
+    const existingItem = await this.prismaService.cartItem.findFirst({
+      where: {
+        userId,
+        productId: dto.productId,
+        variantId: dto.variantId ?? null,
+      },
     });
 
     const nextQuantity = (existingItem?.quantity ?? 0) + dto.quantity;
 
-    if (nextQuantity > product.stock) {
+    if (nextQuantity > availableStock) {
       throw new BadRequestException(
         'Requested quantity exceeds available stock',
       );
     }
 
-    return this.prismaService.cartItem.upsert({
-      where: { userId_productId: { userId, productId: dto.productId } },
-      update: { quantity: nextQuantity },
-      create: { userId, productId: dto.productId, quantity: dto.quantity },
-      include: { product: { include: { category: true } } },
+    if (existingItem) {
+      return this.prismaService.cartItem.update({
+        where: { id: existingItem.id },
+        data: { quantity: nextQuantity },
+        include: {
+          product: { include: { category: true } },
+          variant: true,
+        },
+      });
+    }
+
+    return this.prismaService.cartItem.create({
+      data: {
+        userId,
+        productId: dto.productId,
+        variantId: dto.variantId,
+        quantity: dto.quantity,
+      },
+      include: {
+        product: { include: { category: true } },
+        variant: true,
+      },
     });
   }
 
   public async update(userId: string, itemId: string, dto: UpdateCartItemDto) {
     const item = await this.ensureCartItemBelongsToUser(userId, itemId);
     const product = await this.ensureProductIsAvailable(item.productId);
+    const variant = item.variantId
+      ? await this.ensureVariantIsAvailable(item.productId, item.variantId)
+      : null;
+    const availableStock = variant?.stock ?? product.stock;
 
-    if (dto.quantity > product.stock) {
+    if (dto.quantity > availableStock) {
       throw new BadRequestException(
         'Requested quantity exceeds available stock',
       );
@@ -58,7 +90,10 @@ export class CartService {
     return this.prismaService.cartItem.update({
       where: { id: itemId },
       data: { quantity: dto.quantity },
-      include: { product: { include: { category: true } } },
+      include: {
+        product: { include: { category: true } },
+        variant: true,
+      },
     });
   }
 
@@ -99,5 +134,26 @@ export class CartService {
     }
 
     return product;
+  }
+
+  private async ensureVariantIsAvailable(productId: string, variantId: string) {
+    const variant = await this.prismaService.productVariant.findFirst({
+      where: {
+        id: variantId,
+        productId,
+        isDelete: false,
+        isActive: true,
+      },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Product variant not found');
+    }
+
+    if (variant.stock <= 0) {
+      throw new BadRequestException('Product variant is out of stock');
+    }
+
+    return variant;
   }
 }
