@@ -41,7 +41,9 @@ Request body:
 
 ```json
 {
-  "name": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "2001-05-20",
   "email": "john@example.com",
   "password": "strongPass123!",
   "photoUrl": "https://example.com/avatar.jpg"
@@ -70,7 +72,8 @@ Request body:
 
 ```json
 {
-  "name": "Admin User",
+  "firstName": "Admin",
+  "lastName": "User",
   "email": "admin2@example.com",
   "password": "strongAdminPass123!",
   "photoUrl": "https://example.com/admin.jpg"
@@ -159,7 +162,9 @@ Response example:
 ```json
 {
   "id": "user-id",
-  "name": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "2001-05-20T00:00:00.000Z",
   "email": "john@example.com",
   "role": "USER",
   "photoUrl": "https://example.com/avatar.jpg",
@@ -176,20 +181,26 @@ PATCH /auth/@me
 
 Access: `USER/ADMIN`
 
-Updates current user's public profile fields. `email` and `role` cannot be changed here.
+Updates current user's profile fields. `role` cannot be changed here.
 
 Request body:
 
 ```json
 {
-  "name": "John Smith",
+  "firstName": "John",
+  "lastName": "Smith",
+  "dateOfBirth": "2001-05-20",
+  "email": "john.smith@example.com",
   "photoUrl": "https://example.com/new-avatar.webp"
 }
 ```
 
 Optional fields:
 
-- `name`
+- `firstName`
+- `lastName`
+- `dateOfBirth`
+- `email`
 - `photoUrl`
 
 ### Change password
@@ -204,7 +215,9 @@ Request body:
 
 ```json
 {
-  "password": "newStrongPass123!"
+  "currentPassword": "oldStrongPass123!",
+  "newPassword": "newStrongPass123!",
+  "confirmPassword": "newStrongPass123!"
 }
 ```
 

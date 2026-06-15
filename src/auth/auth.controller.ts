@@ -136,10 +136,22 @@ export class AuthController {
     description: 'Token is missing, expired, or invalid',
   })
   public me(@Authorized() user: AuthorizedUser) {
-    const { name, email, role, photoUrl, createdAt, updatedAt, id } = user;
+    const {
+      firstName,
+      lastName,
+      dateOfBirth,
+      email,
+      role,
+      photoUrl,
+      createdAt,
+      updatedAt,
+      id,
+    } = user;
     const res = {
       id,
-      name,
+      firstName,
+      lastName,
+      dateOfBirth,
       email,
       role,
       photoUrl,
@@ -164,6 +176,7 @@ export class AuthController {
   @Post('change-my-password')
   @ApiBearerAuth()
   @Authorization(UserRole.USER, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Change current user password' })
   @ApiResponse({
     status: HttpStatus.OK,

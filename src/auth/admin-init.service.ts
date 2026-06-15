@@ -26,7 +26,8 @@ export class AdminInitService implements OnModuleInit {
     if (!adminExists) {
       await this.prismaService.user.create({
         data: {
-          name: 'Initial Admin',
+          firstName: 'Initial',
+          lastName: 'Admin',
           email,
           passwordHash: await hash(password),
           role: UserRole.ADMIN,
