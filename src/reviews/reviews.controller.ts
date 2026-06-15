@@ -39,6 +39,7 @@ export class ReviewsController {
   @Post('products/:productId/reviews')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create product review' })
+  @ApiParam({ name: 'productId', description: 'Product ID' })
   public async create(
     @Authorized('id') userId: string,
     @Param('productId') productId: string,
@@ -51,6 +52,7 @@ export class ReviewsController {
   @Authorization(UserRole.USER, UserRole.ADMIN)
   @Patch('reviews/:id')
   @ApiOperation({ summary: 'Update own review or any review as admin' })
+  @ApiParam({ name: 'id', description: 'Review ID' })
   public async update(
     @Authorized('id') userId: string,
     @Authorized('role') userRole: UserRole,
@@ -65,6 +67,7 @@ export class ReviewsController {
   @Delete('reviews/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete own review or any review as admin' })
+  @ApiParam({ name: 'id', description: 'Review ID' })
   public async remove(
     @Authorized('id') userId: string,
     @Authorized('role') userRole: UserRole,

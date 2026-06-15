@@ -162,7 +162,13 @@ export class AuthController {
   }
 
   @Post('change-my-password')
+  @ApiBearerAuth()
   @Authorization(UserRole.USER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password successfully changed',
+  })
   public async changePassword(
     @Authorized('id') userId: string,
     @Body() dto: ChangePasswordDto,
@@ -171,8 +177,14 @@ export class AuthController {
   }
 
   @Patch('change-photo')
+  @ApiBearerAuth()
   @Authorization(UserRole.USER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change current user profile photo' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Profile photo successfully changed',
+  })
   public async changePhoto(
     @Authorized('id') userId: string,
     @Body() dto: ChangePhotoDto,

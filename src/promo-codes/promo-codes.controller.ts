@@ -9,7 +9,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import { UserRole } from '../generated/prisma';
 import { Authorization } from '../auth/decorators/authorization.decorator';
 import { CreatePromoCodeDto } from './dto/create-promo-code.dto';
@@ -50,6 +55,7 @@ export class PromoCodesController {
   @Authorization(UserRole.ADMIN)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a promo code' })
+  @ApiParam({ name: 'id', description: 'Promo code ID' })
   public async update(
     @Param('id') id: string,
     @Body() dto: UpdatePromoCodeDto,
@@ -62,6 +68,7 @@ export class PromoCodesController {
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Soft delete a promo code' })
+  @ApiParam({ name: 'id', description: 'Promo code ID' })
   public async remove(@Param('id') id: string) {
     return this.promoCodesService.remove(id);
   }

@@ -10,6 +10,16 @@ This project was created as a simple and accessible backend example for RS Schoo
 - [API documentation — Russian](docs/API_RU.md)
 - Swagger UI: `http://localhost:3031/docs`
 
+## Features
+
+- Auth with `USER` and `ADMIN` roles
+- Categories and products with search, filters, sorting, and pagination
+- Product variants with SKU, color, size, price, and stock
+- Product reviews with automatic product rating recalculation
+- Favorites, cart, delivery addresses, and orders
+- Promo codes with percentage/fixed discounts
+- Product image upload via MinIO
+
 ## Local setup
 
 Copy environment variables:
