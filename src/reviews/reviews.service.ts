@@ -18,7 +18,11 @@ export class ReviewsService {
 
     return this.prismaService.productReview.findMany({
       where: { productId, isDelete: false },
-      include: { user: { select: { id: true, name: true, photoUrl: true } } },
+      include: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, photoUrl: true },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

@@ -158,7 +158,15 @@ export class OrdersService {
         items: { include: { product: true, variant: true } },
         savedDeliveryAddress: true,
         promoCode: true,
-        user: { select: { id: true, email: true, name: true, role: true } },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
       },
     });
 

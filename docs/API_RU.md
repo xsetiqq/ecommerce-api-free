@@ -41,7 +41,9 @@ Body:
 
 ```json
 {
-  "name": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "2001-05-20",
   "email": "john@example.com",
   "password": "strongPass123!",
   "photoUrl": "https://example.com/avatar.jpg"
@@ -80,7 +82,8 @@ Body:
 
 ```json
 {
-  "name": "Admin User",
+  "firstName": "Admin",
+  "lastName": "User",
   "email": "admin2@example.com",
   "password": "strongAdminPass123!",
   "photoUrl": "https://example.com/admin.jpg"
@@ -167,7 +170,9 @@ Response example:
 ```json
 {
   "id": "user-id",
-  "name": "John Doe",
+  "firstName": "John",
+  "lastName": "Doe",
+  "dateOfBirth": "2001-05-20T00:00:00.000Z",
   "email": "john@example.com",
   "role": "USER",
   "photoUrl": "https://example.com/avatar.jpg",
@@ -184,20 +189,26 @@ PATCH /auth/@me
 
 Доступ: `USER/ADMIN`
 
-Обновляет публичные поля профиля текущего пользователя. `email` и `role` тут менять нельзя.
+Обновляет поля профиля текущего пользователя. `role` тут менять нельзя.
 
 Body:
 
 ```json
 {
-  "name": "John Smith",
+  "firstName": "John",
+  "lastName": "Smith",
+  "dateOfBirth": "2001-05-20",
+  "email": "john.smith@example.com",
   "photoUrl": "https://example.com/new-avatar.webp"
 }
 ```
 
 Необязательные поля:
 
-- `name`
+- `firstName`
+- `lastName`
+- `dateOfBirth`
+- `email`
 - `photoUrl`
 
 ### Изменение пароля
@@ -212,7 +223,9 @@ Body:
 
 ```json
 {
-  "password": "newStrongPass123!"
+  "currentPassword": "oldStrongPass123!",
+  "newPassword": "newStrongPass123!",
+  "confirmPassword": "newStrongPass123!"
 }
 ```
 

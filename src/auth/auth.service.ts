@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -45,7 +46,7 @@ export class AuthService {
   }
 
   public async register(dto: RegisterRequest) {
-    const { name, email, password, photoUrl } = dto;
+    const { firstName, lastName, dateOfBirth, email, password, photoUrl } = dto;
 
     const existUser = await this.prismaService.user.findUnique({
       where: { email },
@@ -57,7 +58,9 @@ export class AuthService {
 
     const user = await this.prismaService.user.create({
       data: {
-        name,
+        firstName,
+        lastName,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         email,
         passwordHash: await hash(password),
         photoUrl,
@@ -70,7 +73,7 @@ export class AuthService {
     };
   }
   public async createAdmin(dto: CreateAdminDto) {
-    const { name, email, password, photoUrl } = dto;
+    const { firstName, lastName, dateOfBirth, email, password, photoUrl } = dto;
 
     const existUser = await this.prismaService.user.findUnique({
       where: { email },
@@ -82,7 +85,9 @@ export class AuthService {
 
     const user = await this.prismaService.user.create({
       data: {
-        name,
+        firstName,
+        lastName,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         email,
         passwordHash: await hash(password),
         photoUrl,
@@ -168,7 +173,9 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
         isActive: true,
         photoUrl: true,
         role: true,
@@ -185,16 +192,35 @@ export class AuthService {
   }
 
   public async updateProfile(id: string, dto: UpdateProfileDto) {
+    if (dto.email) {
+      const existingUser = await this.prismaService.user.findFirst({
+        where: {
+          email: dto.email,
+          id: { not: id },
+        },
+        select: { id: true },
+      });
+
+      if (existingUser) {
+        throw new ConflictException('User with this email already exists');
+      }
+    }
+
     return this.prismaService.user.update({
       where: { id },
       data: {
-        name: dto.name,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         photoUrl: dto.photoUrl,
       },
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
+        dateOfBirth: true,
         role: true,
         photoUrl: true,
         createdAt: true,
@@ -207,10 +233,34 @@ export class AuthService {
     id: string,
     dto: ChangePasswordDto,
   ): Promise<void> {
+    if (dto.newPassword !== dto.confirmPassword) {
+      throw new BadRequestException(
+        'New password and confirmation do not match',
+      );
+    }
+
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      select: { passwordHash: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const isValidCurrentPassword = await verify(
+      user.passwordHash,
+      dto.currentPassword,
+    );
+
+    if (!isValidCurrentPassword) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
     await this.prismaService.user.update({
       where: { id },
       data: {
-        passwordHash: await hash(dto.password),
+        passwordHash: await hash(dto.newPassword),
       },
       select: {
         id: true,
