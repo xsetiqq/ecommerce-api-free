@@ -7,11 +7,15 @@ import {
 import { OrderStatus, UserRole } from '../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { PromoCodesService } from '../promo-codes/promo-codes.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly promoCodesService: PromoCodesService,
+  ) {}
 
   public async create(userId: string, dto: CreateOrderDto) {
     const addressSnapshot = await this.resolveAddressSnapshot(userId, dto);
@@ -19,14 +23,14 @@ export class OrdersService {
     return this.prismaService.$transaction(async (tx) => {
       const cartItems = await tx.cartItem.findMany({
         where: { userId },
-        include: { product: true },
+        include: { product: true, variant: true },
       });
 
       if (cartItems.length === 0) {
         throw new BadRequestException('Cart is empty');
       }
 
-      let total = 0;
+      let subtotal = 0;
 
       for (const item of cartItems) {
         if (item.product.isDelete || !item.product.isActive) {
@@ -35,16 +39,53 @@ export class OrdersService {
           );
         }
 
-        if (item.quantity > item.product.stock) {
+        if (
+          item.variantId &&
+          (!item.variant || item.variant.isDelete || !item.variant.isActive)
+        ) {
+          throw new BadRequestException(
+            `Selected variant for product ${item.product.title} is not available`,
+          );
+        }
+
+        const availableStock = item.variant?.stock ?? item.product.stock;
+
+        if (item.quantity > availableStock) {
           throw new BadRequestException(
             `Not enough stock for product ${item.product.title}`,
           );
         }
 
-        total += Number(item.product.price) * item.quantity;
+        const unitPrice = Number(item.variant?.price ?? item.product.price);
+        subtotal += unitPrice * item.quantity;
       }
 
+      const { promoCode, discountAmount } =
+        await this.promoCodesService.calculateDiscount(dto.promoCode, subtotal);
+      const total = Math.max(0, subtotal - discountAmount);
+
       for (const item of cartItems) {
+        if (item.variantId) {
+          const decrementVariantResult = await tx.productVariant.updateMany({
+            where: {
+              id: item.variantId,
+              productId: item.productId,
+              isDelete: false,
+              isActive: true,
+              stock: { gte: item.quantity },
+            },
+            data: { stock: { decrement: item.quantity } },
+          });
+
+          if (decrementVariantResult.count !== 1) {
+            throw new BadRequestException(
+              `Not enough stock for product ${item.product.title}`,
+            );
+          }
+
+          continue;
+        }
+
         const decrementResult = await tx.product.updateMany({
           where: {
             id: item.productId,
@@ -69,21 +110,28 @@ export class OrdersService {
           deliveryAddress: addressSnapshot.deliveryAddress,
           phone: addressSnapshot.phone,
           comment: dto.comment ?? addressSnapshot.comment,
+          subtotal: subtotal.toFixed(2),
+          discountAmount: discountAmount.toFixed(2),
           total: total.toFixed(2),
+          promoCodeId: promoCode?.id,
           status: OrderStatus.PENDING,
           items: {
             create: cartItems.map((item) => ({
               productId: item.productId,
+              variantId: item.variantId,
               quantity: item.quantity,
-              price: item.product.price,
+              price: item.variant?.price ?? item.product.price,
             })),
           },
         },
         include: {
-          items: { include: { product: true } },
+          items: { include: { product: true, variant: true } },
           savedDeliveryAddress: true,
+          promoCode: true,
         },
       });
+
+      await this.promoCodesService.incrementUsage(tx, promoCode?.id);
 
       await tx.cartItem.deleteMany({ where: { userId } });
 
@@ -95,8 +143,9 @@ export class OrdersService {
     return this.prismaService.order.findMany({
       where: { userId, isDelete: false },
       include: {
-        items: { include: { product: true } },
+        items: { include: { product: true, variant: true } },
         savedDeliveryAddress: true,
+        promoCode: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -106,8 +155,9 @@ export class OrdersService {
     const order = await this.prismaService.order.findFirst({
       where: { id: orderId, isDelete: false },
       include: {
-        items: { include: { product: true } },
+        items: { include: { product: true, variant: true } },
         savedDeliveryAddress: true,
+        promoCode: true,
         user: { select: { id: true, email: true, name: true, role: true } },
       },
     });
@@ -148,6 +198,14 @@ export class OrdersService {
         order.status !== OrderStatus.CANCELLED
       ) {
         for (const item of order.items) {
+          if (item.variantId) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } },
+            });
+            continue;
+          }
+
           await tx.product.update({
             where: { id: item.productId },
             data: { stock: { increment: item.quantity } },
@@ -158,7 +216,7 @@ export class OrdersService {
       return tx.order.update({
         where: { id: orderId },
         data: { status: dto.status },
-        include: { items: { include: { product: true } } },
+        include: { items: { include: { product: true, variant: true } } },
       });
     });
   }

@@ -168,6 +168,30 @@ Response example:
 }
 ```
 
+### Update current user profile
+
+```http
+PATCH /auth/@me
+```
+
+Access: `USER/ADMIN`
+
+Updates current user's public profile fields. `email` and `role` cannot be changed here.
+
+Request body:
+
+```json
+{
+  "name": "John Smith",
+  "photoUrl": "https://example.com/new-avatar.webp"
+}
+```
+
+Optional fields:
+
+- `name`
+- `photoUrl`
+
 ### Change password
 
 ```http
@@ -285,12 +309,33 @@ Soft-deletes the category.
 
 ```http
 GET /products
-GET /products?categorySlug=smartphones
+GET /products?categorySlug=smartphones&q=iphone&minPrice=100&maxPrice=5000&sortBy=price&order=asc&page=1&limit=20
 ```
 
 Access: `Public`
 
-Returns active, non-deleted products whose category is also active and non-deleted.
+Returns active, non-deleted products whose category is also active and non-deleted. Product list supports:
+
+- `categorySlug` — filter by category slug
+- `q` — search by title/description
+- `minPrice`, `maxPrice` — price range
+- `sortBy` — `createdAt`, `price`, `rating`, `title`
+- `order` — `asc` or `desc`
+- `page`, `limit` — pagination
+
+Response is paginated:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "totalPages": 0
+  }
+}
+```
 
 ### Get product by slug
 
@@ -370,6 +415,122 @@ DELETE /products/:id
 Access: `ADMIN`
 
 Soft-deletes the product.
+
+## Product variants
+
+Variants are optional product options such as SKU, color, size, variant-specific price, and variant-specific stock. Product reads include active, non-deleted variants.
+
+### Create product variant
+
+```http
+POST /products/:id/variants
+```
+
+Access: `ADMIN`
+
+Request body:
+
+```json
+{
+  "sku": "TSHIRT-BLACK-M",
+  "color": "Black",
+  "size": "M",
+  "price": 99.99,
+  "stock": 10,
+  "isActive": true
+}
+```
+
+Required fields:
+
+- `sku`
+- `stock`
+
+Optional fields:
+
+- `color`
+- `size`
+- `price`
+- `isActive`
+
+### Update product variant
+
+```http
+PATCH /products/variants/:variantId
+```
+
+Access: `ADMIN`
+
+Body may contain any variant fields:
+
+```json
+{
+  "price": 89.99,
+  "stock": 15,
+  "isActive": true
+}
+```
+
+### Delete product variant
+
+```http
+DELETE /products/variants/:variantId
+```
+
+Access: `ADMIN`
+
+Soft-deletes the variant.
+
+## Product reviews
+
+Reviews are attached to products. A user can have only one active review per product. Product rating is recalculated after review create/update/delete.
+
+### Get product reviews
+
+```http
+GET /products/:productId/reviews
+```
+
+Access: `Public`
+
+### Create product review
+
+```http
+POST /products/:productId/reviews
+```
+
+Access: `USER/ADMIN`
+
+Request body:
+
+```json
+{
+  "rating": 5,
+  "comment": "Great product"
+}
+```
+
+`rating` must be an integer from `1` to `5`. `comment` is optional.
+
+### Update review
+
+```http
+PATCH /reviews/:id
+```
+
+Access: `USER/ADMIN`
+
+Users can update only their own reviews. Admin can update any review.
+
+### Delete review
+
+```http
+DELETE /reviews/:id
+```
+
+Access: `USER/ADMIN`
+
+Users can soft-delete only their own reviews. Admin can soft-delete any review.
 
 ## Product images
 
@@ -565,11 +726,12 @@ Request body:
 ```json
 {
   "productId": "product-id",
+  "variantId": "variant-id",
   "quantity": 1
 }
 ```
 
-If the product already exists in the cart, quantity is increased.
+`variantId` is optional. If the same product/variant combination already exists in the cart, quantity is increased.
 
 ### Update cart item
 
@@ -629,11 +791,11 @@ Backend behavior:
 
 - reads the current user's cart
 - validates products and stock
-- calculates `total` on the backend
+- calculates `subtotal`, promo-code discount, and `total` on the backend
 - creates `Order`
 - creates `OrderItem[]`
-- saves product price into `OrderItem.price`
-- decreases product stock atomically
+- saves product or variant price into `OrderItem.price`
+- decreases product or variant stock atomically
 - clears the user's cart
 
 Create order with a saved delivery address:
@@ -641,6 +803,7 @@ Create order with a saved delivery address:
 ```json
 {
   "deliveryAddressId": "address-id",
+  "promoCode": "SUMMER10",
   "comment": "Call before delivery"
 }
 ```
@@ -650,10 +813,18 @@ Create order with a manual delivery address:
 ```json
 {
   "deliveryAddress": "Krakowskie Przedmieście 10A/12, 20-002 Lublin, Poland",
-  "phone": "+48123456789",
+  "phone": "+481****6789",
+  "promoCode": "SUMMER10",
   "comment": "Call before delivery"
 }
 ```
+
+Order stores:
+
+- `subtotal` — cart total before discount
+- `discountAmount` — promo-code discount amount
+- `total` — final amount after discount
+- `promoCodeId` — linked promo code if one was used
 
 ### Get current user's orders
 
@@ -703,8 +874,98 @@ Available statuses:
 
 Important rules:
 
-- switching an order to `CANCELLED` restores product stock
+- switching an order to `CANCELLED` restores product/variant stock
 - a cancelled order cannot be moved back to another status
+
+## Promo codes
+
+Promo codes can be percentage or fixed-amount discounts. Admin manages codes; users can validate a code and pass it to order creation as `promoCode`.
+
+Discount types:
+
+- `PERCENT` — percentage discount, for example `10` means 10%
+- `FIXED` — fixed amount discount, for example `50` means subtract 50 from subtotal
+
+### Validate promo code
+
+```http
+POST /promo-codes/validate
+```
+
+Access: `Public`
+
+Request body:
+
+```json
+{
+  "code": "SUMMER10"
+}
+```
+
+Returns the active code if it exists and is currently usable.
+
+### Get promo codes
+
+```http
+GET /promo-codes
+```
+
+Access: `ADMIN`
+
+### Create promo code
+
+```http
+POST /promo-codes
+```
+
+Access: `ADMIN`
+
+Request body:
+
+```json
+{
+  "code": "SUMMER10",
+  "type": "PERCENT",
+  "value": 10,
+  "minOrderAmount": 100,
+  "usageLimit": 100,
+  "startsAt": "2026-06-01T00:00:00.000Z",
+  "expiresAt": "2026-07-01T00:00:00.000Z",
+  "isActive": true
+}
+```
+
+Required fields:
+
+- `code`
+- `type`
+- `value`
+
+Optional fields:
+
+- `minOrderAmount`
+- `usageLimit`
+- `startsAt`
+- `expiresAt`
+- `isActive`
+
+### Update promo code
+
+```http
+PATCH /promo-codes/:id
+```
+
+Access: `ADMIN`
+
+### Delete promo code
+
+```http
+DELETE /promo-codes/:id
+```
+
+Access: `ADMIN`
+
+Soft-deletes the promo code.
 
 ## Local demo data
 

@@ -19,6 +19,7 @@ import { ChangePhotoDto } from './dto/change-photo.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
 import { User, UserRole } from '../generated/prisma';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
 export class AuthService {
@@ -181,6 +182,25 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  public async updateProfile(id: string, dto: UpdateProfileDto) {
+    return this.prismaService.user.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        photoUrl: dto.photoUrl,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        photoUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   public async changePassword(

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -6,23 +7,111 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  FindProductsQueryDto,
+  ProductSortBy,
+  SortOrder,
+} from './dto/find-products-query.dto';
+import { Prisma } from '../generated/prisma';
+import { CreateProductVariantDto } from './dto/create-product-variant.dto';
+import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
 
 @Injectable()
 export class ProductsService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  public async findAll(categorySlug?: string) {
-    return this.prismaService.product.findMany({
-      where: {
-        isDelete: false,
-        isActive: true,
-        category: categorySlug
-          ? { slug: categorySlug, isDelete: false, isActive: true }
-          : { isDelete: false, isActive: true },
+  public async findAll(query: FindProductsQueryDto) {
+    const {
+      q,
+      categorySlug,
+      minPrice,
+      maxPrice,
+      sortBy = ProductSortBy.CREATED_AT,
+      order = SortOrder.DESC,
+    } = query;
+
+    if (
+      minPrice !== undefined &&
+      maxPrice !== undefined &&
+      minPrice > maxPrice
+    ) {
+      throw new BadRequestException('minPrice cannot be greater than maxPrice');
+    }
+
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 20, 100);
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProductWhereInput = {
+      isDelete: false,
+      isActive: true,
+      category: categorySlug
+        ? {
+            slug: categorySlug,
+            isDelete: false,
+            isActive: true,
+          }
+        : {
+            isDelete: false,
+            isActive: true,
+          },
+    };
+
+    const search = q?.trim();
+
+    if (search) {
+      where.OR = [
+        {
+          title: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
+    if (minPrice !== undefined || maxPrice !== undefined) {
+      where.price = {
+        ...(minPrice !== undefined ? { gte: minPrice } : {}),
+        ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+      };
+    }
+
+    const orderBy: Prisma.ProductOrderByWithRelationInput = {
+      [sortBy]: order,
+    };
+
+    const [products, total] = await Promise.all([
+      this.prismaService.product.findMany({
+        where,
+        include: {
+          category: true,
+          variants: { where: { isDelete: false, isActive: true } },
+        },
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      this.prismaService.product.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: products,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      include: { category: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    };
   }
 
   public async findBySlug(slug: string) {
@@ -33,7 +122,10 @@ export class ProductsService {
         isActive: true,
         category: { isDelete: false, isActive: true },
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
 
     if (!product) {
@@ -61,7 +153,10 @@ export class ProductsService {
         isActive: dto.isActive ?? true,
         categoryId: dto.categoryId,
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
   }
 
@@ -91,7 +186,10 @@ export class ProductsService {
         isActive: dto.isActive,
         categoryId: dto.categoryId,
       },
-      include: { category: true },
+      include: {
+        category: true,
+        variants: { where: { isDelete: false, isActive: true } },
+      },
     });
   }
 
@@ -105,6 +203,52 @@ export class ProductsService {
         deletedAt: new Date(),
         isActive: false,
       },
+    });
+  }
+
+  public async createVariant(productId: string, dto: CreateProductVariantDto) {
+    await this.ensureProductExists(productId);
+    await this.ensureVariantSkuAvailable(dto.sku);
+
+    return this.prismaService.productVariant.create({
+      data: {
+        productId,
+        sku: dto.sku,
+        color: dto.color,
+        size: dto.size,
+        price: dto.price,
+        stock: dto.stock,
+        isActive: dto.isActive ?? true,
+      },
+    });
+  }
+
+  public async updateVariant(variantId: string, dto: UpdateProductVariantDto) {
+    await this.ensureVariantExists(variantId);
+
+    if (dto.sku) {
+      await this.ensureVariantSkuAvailable(dto.sku, variantId);
+    }
+
+    return this.prismaService.productVariant.update({
+      where: { id: variantId },
+      data: {
+        sku: dto.sku,
+        color: dto.color,
+        size: dto.size,
+        price: dto.price,
+        stock: dto.stock,
+        isActive: dto.isActive,
+      },
+    });
+  }
+
+  public async removeVariant(variantId: string) {
+    await this.ensureVariantExists(variantId);
+
+    return this.prismaService.productVariant.update({
+      where: { id: variantId },
+      data: { isDelete: true, isActive: false, deletedAt: new Date() },
     });
   }
 
@@ -139,6 +283,30 @@ export class ProductsService {
 
     if (product && product.id !== excludeId) {
       throw new ConflictException('Product with this slug already exists');
+    }
+  }
+
+  private async ensureVariantExists(id: string) {
+    const variant = await this.prismaService.productVariant.findFirst({
+      where: { id, isDelete: false },
+    });
+
+    if (!variant) {
+      throw new NotFoundException('Product variant not found');
+    }
+
+    return variant;
+  }
+
+  private async ensureVariantSkuAvailable(sku: string, excludeId?: string) {
+    const variant = await this.prismaService.productVariant.findUnique({
+      where: { sku },
+    });
+
+    if (variant && variant.id !== excludeId) {
+      throw new ConflictException(
+        'Product variant with this SKU already exists',
+      );
     }
   }
 }

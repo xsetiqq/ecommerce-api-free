@@ -26,6 +26,7 @@ import { ChangePhotoDto } from './dto/change-photo.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
 import { CreateAdminDto } from './dto/create-admin.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -148,8 +149,26 @@ export class AuthController {
     return res;
   }
 
-  @Post('change-my-password')
+  @Patch('@me')
+  @ApiBearerAuth()
   @Authorization(UserRole.USER, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update current user profile' })
+  public async updateProfile(
+    @Authorized('id') userId: string,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(userId, dto);
+  }
+
+  @Post('change-my-password')
+  @ApiBearerAuth()
+  @Authorization(UserRole.USER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Change current user password' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Password successfully changed',
+  })
   public async changePassword(
     @Authorized('id') userId: string,
     @Body() dto: ChangePasswordDto,
@@ -158,8 +177,14 @@ export class AuthController {
   }
 
   @Patch('change-photo')
+  @ApiBearerAuth()
   @Authorization(UserRole.USER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Change current user profile photo' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Profile photo successfully changed',
+  })
   public async changePhoto(
     @Authorized('id') userId: string,
     @Body() dto: ChangePhotoDto,

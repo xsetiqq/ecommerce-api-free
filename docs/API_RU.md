@@ -176,6 +176,30 @@ Response example:
 }
 ```
 
+### Обновить профиль текущего пользователя
+
+```http
+PATCH /auth/@me
+```
+
+Доступ: `USER/ADMIN`
+
+Обновляет публичные поля профиля текущего пользователя. `email` и `role` тут менять нельзя.
+
+Body:
+
+```json
+{
+  "name": "John Smith",
+  "photoUrl": "https://example.com/new-avatar.webp"
+}
+```
+
+Необязательные поля:
+
+- `name`
+- `photoUrl`
+
 ### Изменение пароля
 
 ```http
@@ -308,12 +332,33 @@ DELETE /categories/:id
 
 ```http
 GET /products
-GET /products?categorySlug=smartphones
+GET /products?categorySlug=smartphones&q=iphone&minPrice=100&maxPrice=5000&sortBy=price&order=asc&page=1&limit=20
 ```
 
 Доступ: `Public`
 
-Возвращает активные и не удалённые товары. Категория товара тоже должна быть активной и не удалённой.
+Возвращает активные и не удалённые товары. Категория товара тоже должна быть активной и не удалённой. Список товаров поддерживает:
+
+- `categorySlug` — фильтр по slug категории
+- `q` — поиск по названию/описанию
+- `minPrice`, `maxPrice` — диапазон цены
+- `sortBy` — `createdAt`, `price`, `rating`, `title`
+- `order` — `asc` или `desc`
+- `page`, `limit` — пагинация
+
+Response с пагинацией:
+
+```json
+{
+  "data": [],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 0,
+    "totalPages": 0
+  }
+}
+```
 
 ### Получить товар по slug
 
@@ -399,6 +444,122 @@ DELETE /products/:id
 Доступ: `ADMIN`
 
 Товар удаляется мягко: `isDelete = true`, `deletedAt = now()`.
+
+## Product Variants
+
+Варианты товара — это опциональные SKU/цвет/размер/цена/остаток для конкретного варианта. При чтении товара возвращаются активные и не удалённые варианты.
+
+### Создать вариант товара
+
+```http
+POST /products/:id/variants
+```
+
+Доступ: `ADMIN`
+
+Body:
+
+```json
+{
+  "sku": "TSHIRT-BLACK-M",
+  "color": "Black",
+  "size": "M",
+  "price": 99.99,
+  "stock": 10,
+  "isActive": true
+}
+```
+
+Обязательные поля:
+
+- `sku`
+- `stock`
+
+Необязательные поля:
+
+- `color`
+- `size`
+- `price`
+- `isActive`
+
+### Обновить вариант товара
+
+```http
+PATCH /products/variants/:variantId
+```
+
+Доступ: `ADMIN`
+
+Body может содержать любые поля варианта:
+
+```json
+{
+  "price": 89.99,
+  "stock": 15,
+  "isActive": true
+}
+```
+
+### Удалить вариант товара
+
+```http
+DELETE /products/variants/:variantId
+```
+
+Доступ: `ADMIN`
+
+Вариант удаляется мягко.
+
+## Product Reviews
+
+Отзывы привязаны к товарам. Один пользователь может иметь только один активный отзыв на один товар. Rating товара пересчитывается после создания/обновления/удаления отзыва.
+
+### Получить отзывы товара
+
+```http
+GET /products/:productId/reviews
+```
+
+Доступ: `Public`
+
+### Создать отзыв
+
+```http
+POST /products/:productId/reviews
+```
+
+Доступ: `USER/ADMIN`
+
+Body:
+
+```json
+{
+  "rating": 5,
+  "comment": "Great product"
+}
+```
+
+`rating` — целое число от `1` до `5`. `comment` необязательный.
+
+### Обновить отзыв
+
+```http
+PATCH /reviews/:id
+```
+
+Доступ: `USER/ADMIN`
+
+Пользователь может обновить только свой отзыв. Admin может обновить любой отзыв.
+
+### Удалить отзыв
+
+```http
+DELETE /reviews/:id
+```
+
+Доступ: `USER/ADMIN`
+
+Пользователь может мягко удалить только свой отзыв. Admin может удалить любой отзыв.
 
 ## Product Images
 
@@ -614,11 +775,12 @@ Body:
 ```json
 {
   "productId": "product-id",
+  "variantId": "variant-id",
   "quantity": 1
 }
 ```
 
-Если товар уже есть в корзине, количество увеличивается.
+`variantId` необязательный. Если такая же комбинация product/variant уже есть в корзине, количество увеличивается.
 
 ### Обновить позицию корзины
 
@@ -684,11 +846,11 @@ POST /orders
 - проверяет, что корзина не пустая
 - проверяет, что товары активные и не удалены
 - проверяет наличие товара на складе
-- считает `total` на backend
+- считает `subtotal`, скидку по promo code и `total` на backend
 - создаёт `Order`
 - создаёт `OrderItem[]`
-- сохраняет цену товара в `OrderItem.price`
-- атомарно уменьшает `stock`
+- сохраняет цену товара или варианта в `OrderItem.price`
+- атомарно уменьшает `stock` товара или варианта
 - очищает корзину пользователя
 
 Создание заказа через сохранённый адрес:
@@ -696,6 +858,7 @@ POST /orders
 ```json
 {
   "deliveryAddressId": "address-id",
+  "promoCode": "SUMMER10",
   "comment": "Call before delivery"
 }
 ```
@@ -705,7 +868,8 @@ POST /orders
 ```json
 {
   "deliveryAddress": "Krakowskie Przedmieście 10A/12, 20-002 Lublin, Poland",
-  "phone": "+48123456789",
+  "phone": "+481****6789",
+  "promoCode": "SUMMER10",
   "comment": "Call before delivery"
 }
 ```
@@ -715,6 +879,13 @@ POST /orders
 - если используется `deliveryAddressId`, адрес должен принадлежать текущему пользователю
 - в заказ сохраняется snapshot адреса и телефона
 - если потом пользователь изменит адрес, старый заказ не изменится
+
+Заказ сохраняет:
+
+- `subtotal` — сумма корзины до скидки
+- `discountAmount` — сумма скидки по promo code
+- `total` — итоговая сумма после скидки
+- `promoCodeId` — ссылка на promo code, если он был использован
 
 ### Получить свои заказы
 
@@ -766,8 +937,98 @@ Body:
 
 Важные правила:
 
-- при переводе заказа в `CANCELLED` stock товаров возвращается
+- при переводе заказа в `CANCELLED` stock товаров/вариантов возвращается
 - отменённый заказ нельзя вернуть в другой статус
+
+## Promo Codes
+
+Promo code может быть процентной или фиксированной скидкой. Admin управляет кодами, пользователь может проверить код и передать его при создании заказа как `promoCode`.
+
+Типы скидок:
+
+- `PERCENT` — процентная скидка, например `10` = 10%
+- `FIXED` — фиксированная скидка, например `50` = минус 50 от subtotal
+
+### Проверить promo code
+
+```http
+POST /promo-codes/validate
+```
+
+Доступ: `Public`
+
+Body:
+
+```json
+{
+  "code": "SUMMER10"
+}
+```
+
+Возвращает активный код, если он существует и сейчас может быть использован.
+
+### Получить promo codes
+
+```http
+GET /promo-codes
+```
+
+Доступ: `ADMIN`
+
+### Создать promo code
+
+```http
+POST /promo-codes
+```
+
+Доступ: `ADMIN`
+
+Body:
+
+```json
+{
+  "code": "SUMMER10",
+  "type": "PERCENT",
+  "value": 10,
+  "minOrderAmount": 100,
+  "usageLimit": 100,
+  "startsAt": "2026-06-01T00:00:00.000Z",
+  "expiresAt": "2026-07-01T00:00:00.000Z",
+  "isActive": true
+}
+```
+
+Обязательные поля:
+
+- `code`
+- `type`
+- `value`
+
+Необязательные поля:
+
+- `minOrderAmount`
+- `usageLimit`
+- `startsAt`
+- `expiresAt`
+- `isActive`
+
+### Обновить promo code
+
+```http
+PATCH /promo-codes/:id
+```
+
+Доступ: `ADMIN`
+
+### Удалить promo code
+
+```http
+DELETE /promo-codes/:id
+```
+
+Доступ: `ADMIN`
+
+Promo code удаляется мягко.
 
 ## Demo data / Seed
 

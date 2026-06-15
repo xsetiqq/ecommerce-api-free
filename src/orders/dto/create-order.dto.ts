@@ -19,6 +19,11 @@ export class CreateOrderDto {
   @IsString({ message: 'Phone must be a string' })
   phone?: string;
 
+  @ApiPropertyOptional({ example: 'SUMMER10' })
+  @IsOptional()
+  @IsString({ message: 'Promo code must be a string' })
+  promoCode?: string;
+
   @ApiPropertyOptional({ example: 'Call before delivery' })
   @IsOptional()
   @IsString({ message: 'Comment must be a string' })
