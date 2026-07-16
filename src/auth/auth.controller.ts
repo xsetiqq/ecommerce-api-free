@@ -27,6 +27,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import type { AuthorizedUser } from './interfaces/authorized-user.interface';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -166,6 +167,23 @@ export class AuthController {
   @Authorization(UserRole.USER, UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User profile successfully updated',
+    type: ProfileResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Profile data validation failed',
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Token is missing, expired, or invalid',
+  })
+  @ApiResponse({
+    status: HttpStatus.CONFLICT,
+    description: 'User with this email already exists',
+  })
   public async updateProfile(
     @Authorized('id') userId: string,
     @Body() dto: UpdateProfileDto,
