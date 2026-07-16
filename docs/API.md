@@ -203,6 +203,28 @@ Optional fields:
 - `email`
 - `photoUrl`
 
+Successful response: `200 OK`
+
+```json
+{
+  "id": "user-id",
+  "firstName": "John",
+  "lastName": "Smith",
+  "dateOfBirth": "2001-05-20T00:00:00.000Z",
+  "email": "john.smith@example.com",
+  "role": "USER",
+  "photoUrl": "https://example.com/new-avatar.webp",
+  "createdAt": "2026-06-15T18:00:00.000Z",
+  "updatedAt": "2026-06-16T10:30:00.000Z"
+}
+```
+
+Possible errors:
+
+- `400 Bad Request` — profile data validation failed.
+- `401 Unauthorized` — token is missing, expired, or invalid.
+- `409 Conflict` — another user already uses the requested email.
+
 ### Change password
 
 ```http

@@ -211,6 +211,28 @@ Body:
 - `email`
 - `photoUrl`
 
+Успешный ответ: `200 OK`
+
+```json
+{
+  "id": "user-id",
+  "firstName": "John",
+  "lastName": "Smith",
+  "dateOfBirth": "2001-05-20T00:00:00.000Z",
+  "email": "john.smith@example.com",
+  "role": "USER",
+  "photoUrl": "https://example.com/new-avatar.webp",
+  "createdAt": "2026-06-15T18:00:00.000Z",
+  "updatedAt": "2026-06-16T10:30:00.000Z"
+}
+```
+
+Возможные ошибки:
+
+- `400 Bad Request` — данные профиля не прошли валидацию.
+- `401 Unauthorized` — токен отсутствует, истёк или недействителен.
+- `409 Conflict` — указанный email уже используется другим пользователем.
+
 ### Изменение пароля
 
 ```http
